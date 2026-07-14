@@ -40,7 +40,9 @@
             font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
             overflow: hidden;
             -webkit-font-smoothing: antialiased;
+            -webkit-user-select: none;
             user-select: none;
+            -webkit-touch-callout: none;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -327,6 +329,9 @@
                 0 0 66px -12px rgba(155,123,255,.75);
             transition: transform .14s cubic-bezier(.16,1,.3,1), box-shadow .25s ease, filter .25s ease;
             touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
             animation: coreBreathe 5s ease-in-out infinite;
         }
         @keyframes coreBreathe {
