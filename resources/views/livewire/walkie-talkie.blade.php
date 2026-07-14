@@ -66,7 +66,7 @@
         <div class="hint">HOLD&nbsp;TO&nbsp;TRANSMIT&nbsp;&nbsp;·&nbsp;&nbsp;RELEASE&nbsp;TO&nbsp;SEND</div>
 
         <label class="music-toggle" style="--color-accent:#57f5ff; --color-accent-foreground:#01020a;">
-            <flux:switch @change="toggleMusic($event.target.checked)" checked />
+            <flux:switch @change="toggleMusic($event.target.checked)" />
             <span>MUSIC</span>
         </label>
     </main>
