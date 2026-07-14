@@ -1,83 +1,70 @@
 @php($meta = $channelMeta[$channel] ?? ['name' => '—', 'freq' => '00.0'])
 
-<div wire:poll.2000ms="checkForMessages" class="app-shell" x-data="talkie()" x-cloak>
+<div wire:poll.2000ms="checkForMessages" class="stage" x-data="talkie()" x-cloak>
 
-    {{-- Brand --}}
-    <header class="brand">
-        TALKIE
-        <small>DEEP&nbsp;SPACE&nbsp;PUSH&#8209;TO&#8209;TALK&nbsp;NETWORK</small>
+    {{-- Masthead --}}
+    <header class="masthead">
+        <div class="wordmark">TALKIE</div>
+        <div class="tagline">LIVING&nbsp;SIGNAL&nbsp;NETWORK</div>
     </header>
 
-    {{-- Channel dial --}}
-    <section class="dial-wrap glass" style="padding: 26px 30px; margin-top: 8px;">
-        <div class="dial" :class="{ 'dial-locking': locking }" wire:key="dial-{{ $channel }}">
-            <div class="dial-ring"></div>
+    <main class="console">
 
-            {{-- rotating tick marks, current channel snaps to top --}}
-            <div class="dial-ticks" style="transform: rotate({{ -($channel - 1) * 36 }}deg);">
+        {{-- Frequency readout --}}
+        <div class="readout" :class="{ 'tuning': locking }" wire:key="rd-{{ $channel }}">
+            <div class="rd-num">{{ str_pad((string) $channel, 2, '0', STR_PAD_LEFT) }}</div>
+            <div class="rd-meta">
+                <div class="rd-name">{{ $meta['name'] }}</div>
+                <div class="rd-freq">{{ $meta['freq'] }} MHz</div>
+            </div>
+        </div>
+
+        {{-- Channel spectrum selector --}}
+        <div class="spectrum">
+            <button type="button" class="step" wire:click="prevChannel" @pointerdown="playFx('tune')" aria-label="Previous channel">&lsaquo;</button>
+            <div class="nodes">
                 @for ($i = 1; $i <= \App\Livewire\WalkieTalkie::CHANNELS; $i++)
-                    <div class="tick {{ $i === $channel ? 'on' : '' }}"
-                         style="transform: rotate({{ ($i - 1) * 36 }}deg);">
-                        <i></i>
-                    </div>
+                    <button type="button"
+                            class="node {{ $i === $channel ? 'on' : '' }}"
+                            wire:click="setChannel({{ $i }})"
+                            @pointerdown="if ({{ $i }} !== $wire.get('channel')) playFx('tune')"
+                            aria-label="Channel {{ $i }}"><span></span></button>
                 @endfor
             </div>
-
-            <div class="dial-core">
-                <div class="dial-ch">{{ str_pad((string) $channel, 2, '0', STR_PAD_LEFT) }}</div>
-                <div class="dial-name">{{ $meta['name'] }}</div>
-                <div class="dial-freq">{{ $meta['freq'] }} MHz</div>
-            </div>
+            <button type="button" class="step" wire:click="nextChannel" @pointerdown="playFx('tune')" aria-label="Next channel">&rsaquo;</button>
         </div>
 
-        {{-- +/- channel controls --}}
-        <div style="display:flex; align-items:center; justify-content:center; gap:34px; margin-top:22px;">
-            <button type="button" class="nav-btn" wire:click="prevChannel" aria-label="Previous channel">&minus;</button>
-            <div style="font-size:10px; letter-spacing:.34em; text-indent:.34em; color:rgba(180,205,255,.55);">CHANNEL</div>
-            <button type="button" class="nav-btn" wire:click="nextChannel" aria-label="Next channel">+</button>
-        </div>
-    </section>
-
-    {{-- Equalizer --}}
-    <section style="width:100%; max-width:420px;">
-        <div class="eq" x-ref="eq"
-             :class="{ 'live': recording, 'rx': receiving }">
+        {{-- Reactive spectrum line --}}
+        <div class="wave" x-ref="eq" :class="{ 'live': recording, 'rx': receiving }">
             @for ($i = 0; $i < 32; $i++)<b></b>@endfor
         </div>
 
-        {{-- Status --}}
-        <div class="status-line" :class="statusClass" x-text="status"></div>
-
-        <template x-if="receiving">
-            <div style="text-align:center; margin-top:2px;">
-                <span class="rx-badge"><span class="rx-dot"></span> <span x-text="rxLabel"></span></span>
-            </div>
-        </template>
-    </section>
-
-    {{-- Push to talk --}}
-    <section class="ptt-wrap" :class="{ 'recording': recording }">
-        <button type="button"
-                class="ptt"
-                :class="{ 'recording': recording }"
-                @pointerdown.prevent="startTx"
-                @pointerup.prevent="stopTx"
-                @pointerleave="stopTx"
-                @pointercancel="stopTx"
-                @contextmenu.prevent>
-            <span class="ptt-inner">
-                <span class="ptt-mic" x-show="!recording">🎙</span>
-                <span class="ptt-mic" x-show="recording" x-cloak style="color:var(--magenta)">◉</span>
-            </span>
-        </button>
-        <div class="ptt-halo">
-            <span></span><span></span><span></span>
+        {{-- Status + incoming pill --}}
+        <div style="text-align:center;">
+            <div class="status" :class="statusClass" x-text="status"></div>
+            <template x-if="receiving">
+                <div><span class="rxpill"><span class="rxdot"></span> <span x-text="rxLabel"></span></span></div>
+            </template>
         </div>
-    </section>
 
-    <footer class="hint" style="margin-top:6px;">
-        HOLD&nbsp;TO&nbsp;TRANSMIT&nbsp;&nbsp;·&nbsp;&nbsp;RELEASE&nbsp;TO&nbsp;SEND&nbsp;&nbsp;·&nbsp;&nbsp;LIVE&nbsp;ON&nbsp;CH&nbsp;{{ str_pad((string)$channel,2,'0',STR_PAD_LEFT) }}
-    </footer>
+        {{-- Push to talk — the signal source --}}
+        <div class="core-wrap" :class="{ 'recording': recording }">
+            <button type="button"
+                    class="core"
+                    :class="{ 'recording': recording }"
+                    @pointerdown.prevent="startTx"
+                    @pointerup.prevent="stopTx"
+                    @pointerleave="stopTx"
+                    @pointercancel="stopTx"
+                    @contextmenu.prevent>
+                <span class="core-glyph" x-show="!recording">HOLD</span>
+                <span class="core-glyph" x-show="recording" x-cloak>ON&nbsp;AIR</span>
+            </button>
+            <div class="core-halo"><span></span><span></span><span></span></div>
+        </div>
+
+        <div class="hint">HOLD&nbsp;TO&nbsp;TRANSMIT&nbsp;&nbsp;·&nbsp;&nbsp;RELEASE&nbsp;TO&nbsp;SEND</div>
+    </main>
 
     {{-- hidden playback element --}}
     <audio x-ref="player" playsinline></audio>
@@ -104,22 +91,44 @@
         rafId: null,
         rxTimer: null,
 
+        sfx: null,
+        music: null,
+
         init() {
-            // channel tuned -> lock animation + satellite pulse
+            // --- audio: looping background music + radio SFX ---
+            this.sfx = {
+                start: new Audio('/fx/_RADIO_start.mp3'),
+                end:   new Audio('/fx/_RADIO_end.mp3'),
+                tune:  new Audio('/fx/_RADIO_tune.mp3'),
+            };
+            Object.values(this.sfx).forEach(a => { a.preload = 'auto'; a.volume = 0.6; });
+
+            this.music = new Audio('https://lumerel.nyc3.cdn.digitaloceanspaces.com/music/Synth_Wave_Focus.mp3');
+            this.music.loop = true;
+            this.music.volume = 0.16;
+            // browsers block autoplay until a gesture — kick it off on the first one
+            const startMusic = () => {
+                this.music.play().catch(() => {});
+                window.removeEventListener('pointerdown', startMusic);
+            };
+            window.addEventListener('pointerdown', startMusic);
+
+            // channel tuned -> morph the organism to the new channel
             this.$wire.on('channel-tuned', () => {
                 this.locking = true;
-                this.status = 'LOCKING SIGNAL…';
+                this.status = 'RETUNING SIGNAL…';
                 this.statusClass = '';
-                window.dispatchEvent(new Event('talkie:tuned'));
+                window.__signal && window.__signal.morph(this.$wire.get('channel'));
                 setTimeout(() => {
                     this.locking = false;
                     if (!this.recording && !this.receiving) this.status = 'STANDING BY';
-                }, 1100);
+                }, 900);
             });
 
             this.$wire.on('transmission-sent', () => {
                 this.status = 'TRANSMITTED';
                 this.statusClass = 'tx';
+                window.__signal && window.__signal.burst();
                 window.dispatchEvent(new Event('talkie:tx'));
                 setTimeout(() => {
                     if (!this.recording && !this.receiving) {
@@ -134,12 +143,21 @@
                 this.receive(data);
             });
 
+            // sync organism to the initial channel
+            window.__signal && window.__signal.morph(this.$wire.get('channel'));
             this.resetEq();
+        },
+
+        playFx(name) {
+            const a = this.sfx && this.sfx[name];
+            if (!a) return;
+            try { a.currentTime = 0; a.play().catch(() => {}); } catch (e) {}
         },
 
         // ---------- transmit ----------
         async startTx() {
             if (this.recording || this.receiving) return;
+            this.playFx('start');
             try {
                 this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             } catch (e) {
@@ -162,6 +180,7 @@
             this.recording = true;
             this.status = 'TRANSMITTING…';
             this.statusClass = 'tx';
+            window.__signal && window.__signal.tx();
             window.dispatchEvent(new Event('talkie:tx'));
 
             this.startLiveEq();
@@ -169,10 +188,12 @@
 
         stopTx() {
             if (!this.recording) return;
+            this.playFx('end');
             this.recording = false;
             try { this.recorder && this.recorder.state !== 'inactive' && this.recorder.stop(); } catch (e) {}
             this.stopStream();
             this.stopEq();
+            window.__signal && window.__signal.idle();
         },
 
         finishTx() {
@@ -211,6 +232,7 @@
             this.rxLabel = (data.callsign || 'STATION') + ' · CH ' + String(data.channel).padStart(2, '0');
             this.status = 'INCOMING TRANSMISSION';
             this.statusClass = 'rx';
+            window.__signal && window.__signal.rx();
             window.dispatchEvent(new Event('talkie:rx'));
 
             let finished = false;
@@ -220,6 +242,7 @@
                 if (this.rxTimer) { clearTimeout(this.rxTimer); this.rxTimer = null; }
                 this.receiving = false;
                 this.stopEq();
+                window.__signal && window.__signal.idle();
                 if (!this.recording && !this.locking) { this.status = 'STANDING BY'; this.statusClass = ''; }
                 player.removeEventListener('ended', done);
                 player.removeEventListener('error', done);
@@ -229,8 +252,7 @@
             player.addEventListener('error', done);
 
             // Fallback: webm blobs often report no/Infinity duration and autoplay
-            // can be blocked (promise reject, no 'error' event) — so always arm a
-            // timer off the stored duration to guarantee the animation stops.
+            // can be blocked (promise reject, no 'error' event) — always arm a timer.
             const secs = Number(data.duration) > 0 ? Number(data.duration) : 6;
             this.rxTimer = setTimeout(done, Math.ceil(secs * 1000) + 900);
 
@@ -243,7 +265,7 @@
 
         resetEq() {
             const bars = this.bars();
-            for (let i = 0; i < bars.length; i++) bars[i].style.height = '6px';
+            for (let i = 0; i < bars.length; i++) bars[i].style.height = '3px';
         },
 
         startLiveEq() {
@@ -263,11 +285,16 @@
                 if (this.analyser) {
                     this.analyser.getByteFrequencyData(this.freqData);
                     const n = bars.length;
+                    let sum = 0;
                     for (let i = 0; i < n; i++) {
                         const idx = Math.floor((i / n) * this.freqData.length);
                         const v = this.freqData[idx] / 255;
-                        bars[i].style.height = (6 + v * 54) + 'px';
+                        bars[i].style.height = (3 + v * 50) + 'px';
+                        sum += v;
                     }
+                    // feed the living organism with the voice amplitude
+                    const level = Math.min(1, (sum / n) * 2.4);
+                    window.__signal && window.__signal.audio(level);
                 }
                 this.rafId = requestAnimationFrame(loop);
             };
@@ -281,12 +308,16 @@
             const loop = () => {
                 if (!this.receiving) return;
                 phase += 0.35;
+                let sum = 0;
                 for (let i = 0; i < n; i++) {
                     const wobble = Math.sin(phase + i * 0.5) * 0.5 + 0.5;
                     const env = Math.sin((i / n) * Math.PI); // taller in the middle
                     const v = wobble * env * (0.55 + Math.random() * 0.45);
-                    bars[i].style.height = (6 + v * 52) + 'px';
+                    bars[i].style.height = (3 + v * 48) + 'px';
+                    sum += v;
                 }
+                // pulse the organism to the (synthetic) incoming waveform
+                window.__signal && window.__signal.audio(Math.min(1, (sum / n) * 1.8));
                 this.rafId = requestAnimationFrame(loop);
             };
             this.rafId = requestAnimationFrame(loop);
