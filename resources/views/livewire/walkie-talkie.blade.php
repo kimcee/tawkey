@@ -93,6 +93,7 @@
 
         sfx: null,
         music: null,
+        arming: false,
 
         init() {
             // --- audio: looping background music + radio SFX ---
@@ -105,7 +106,7 @@
 
             this.music = new Audio('https://lumerel.nyc3.cdn.digitaloceanspaces.com/music/Synth_Wave_Focus.mp3');
             this.music.loop = true;
-            this.music.volume = 0.16;
+            this.music.volume = 0.05;
             // browsers block autoplay until a gesture — kick it off on the first one
             const startMusic = () => {
                 this.music.play().catch(() => {});
@@ -154,17 +155,56 @@
             try { a.currentTime = 0; a.play().catch(() => {}); } catch (e) {}
         },
 
+        // duck the background music way down while transmitting so it can't
+        // bleed into the mic / trigger echo-cancellation gain-ducking.
+        duckMusic(on) {
+            if (!this.music) return;
+            this.music.volume = on ? 0.00 : 0.05;
+        },
+
         // ---------- transmit ----------
         async startTx() {
-            if (this.recording || this.receiving) return;
+            if (this.recording || this.receiving || this.arming) return;
+            this.arming = true;
+            this.recording = true; // immediate UI feedback (halo, glyph, organism)
+            this.status = 'TRANSMITTING…';
+            this.statusClass = 'tx';
+            window.__signal && window.__signal.tx();
+            window.dispatchEvent(new Event('talkie:tx'));
+
             this.playFx('start');
+            this.duckMusic(true);
+
             try {
-                this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                // Disable the browser's audio processing — echo-cancellation +
+                // noise-suppression are what quiet the mic when other audio plays.
+                this.stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: true,
+                    },
+                });
             } catch (e) {
                 this.status = 'MIC ACCESS DENIED';
                 this.statusClass = 'err';
+                this.recording = false;
+                this.arming = false;
+                this.duckMusic(false);
+                window.__signal && window.__signal.idle();
                 return;
             }
+
+            // Released before the mic was ready — bail cleanly.
+            if (!this.recording) { this.cancelArming(); return; }
+
+            // Wait out the ~1s start blip so it isn't captured in the recording.
+            const blip = this.sfx && this.sfx.start;
+            const wait = (blip && isFinite(blip.duration) && blip.duration) ? blip.duration * 1000 : 700;
+            await new Promise(r => setTimeout(r, Math.min(wait, 1200)));
+
+            // Released during the delay — bail.
+            if (!this.recording) { this.cancelArming(); return; }
 
             this.chunks = [];
             const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
@@ -177,19 +217,25 @@
 
             this.recorder.start();
             this.startedAt = performance.now();
-            this.recording = true;
-            this.status = 'TRANSMITTING…';
-            this.statusClass = 'tx';
-            window.__signal && window.__signal.tx();
-            window.dispatchEvent(new Event('talkie:tx'));
+            this.arming = false;
 
             this.startLiveEq();
+        },
+
+        // rolled back an arm that never became a real recording
+        cancelArming() {
+            this.arming = false;
+            this.stopStream();
+            this.duckMusic(false);
+            window.__signal && window.__signal.idle();
+            if (!this.receiving) { this.status = 'STANDING BY'; this.statusClass = ''; }
         },
 
         stopTx() {
             if (!this.recording) return;
             this.playFx('end');
             this.recording = false;
+            this.duckMusic(false);
             try { this.recorder && this.recorder.state !== 'inactive' && this.recorder.stop(); } catch (e) {}
             this.stopStream();
             this.stopEq();
