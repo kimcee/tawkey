@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>TALKIE — Living Signal</title>
+    <title>TAWKEY — Living Signal</title>
 
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="icon" href="/favicon.ico" sizes="any">
@@ -13,6 +13,7 @@
     @fonts
     @vite(['resources/css/app.css'])
     @livewireStyles
+    @fluxAppearance
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
@@ -371,6 +372,21 @@
             text-shadow: 0 2px 12px rgba(1,2,10,.9);
         }
 
+        .music-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 2px;
+            font-size: 9.5px;
+            font-weight: 500;
+            letter-spacing: .32em;
+            text-indent: .32em;
+            color: var(--dimmer);
+            cursor: pointer;
+            text-shadow: 0 2px 12px rgba(1,2,10,.9);
+        }
+        .music-toggle:hover { color: var(--dim); }
+
         [x-cloak] { display: none !important; }
     </style>
 </head>
@@ -384,6 +400,7 @@
     @livewire('walkie-talkie')
 
     @livewireScripts
+    @fluxScripts
 
     <script>
     // ==================================================================

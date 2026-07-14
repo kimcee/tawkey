@@ -4,7 +4,7 @@
 
     {{-- Masthead --}}
     <header class="masthead">
-        <div class="wordmark">TALKIE</div>
+        <div class="wordmark">TAWKEY</div>
         <div class="tagline">LIVING&nbsp;SIGNAL&nbsp;NETWORK</div>
     </header>
 
@@ -64,6 +64,11 @@
         </div>
 
         <div class="hint">HOLD&nbsp;TO&nbsp;TRANSMIT&nbsp;&nbsp;·&nbsp;&nbsp;RELEASE&nbsp;TO&nbsp;SEND</div>
+
+        <label class="music-toggle" style="--color-accent:#57f5ff; --color-accent-foreground:#01020a;">
+            <flux:switch @change="toggleMusic($event.target.checked)" checked />
+            <span>MUSIC</span>
+        </label>
     </main>
 
     {{-- hidden playback element --}}
@@ -94,6 +99,8 @@
         sfx: null,
         music: null,
         arming: false,
+        musicOn: true,
+        musicVol: 0.05,
 
         init() {
             // --- audio: looping background music + radio SFX ---
@@ -106,10 +113,10 @@
 
             this.music = new Audio('https://lumerel.nyc3.cdn.digitaloceanspaces.com/music/Synth_Wave_Focus.mp3');
             this.music.loop = true;
-            this.music.volume = 0.05;
+            this.music.volume = this.musicVol;
             // browsers block autoplay until a gesture — kick it off on the first one
             const startMusic = () => {
-                this.music.play().catch(() => {});
+                if (this.musicOn) this.music.play().catch(() => {});
                 window.removeEventListener('pointerdown', startMusic);
             };
             window.addEventListener('pointerdown', startMusic);
@@ -158,8 +165,19 @@
         // duck the background music way down while transmitting so it can't
         // bleed into the mic / trigger echo-cancellation gain-ducking.
         duckMusic(on) {
+            if (!this.music || !this.musicOn) return;
+            this.music.volume = on ? 0.00 : this.musicVol;
+        },
+
+        toggleMusic(on) {
+            this.musicOn = !!on;
             if (!this.music) return;
-            this.music.volume = on ? 0.00 : 0.05;
+            if (this.musicOn) {
+                this.music.volume = this.musicVol;
+                this.music.play().catch(() => {});
+            } else {
+                this.music.pause();
+            }
         },
 
         // ---------- transmit ----------

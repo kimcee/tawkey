@@ -8,7 +8,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
-#[Title('Talkie — Push To Talk')]
+#[Title('Tawkey — Push To Talk')]
 class WalkieTalkie extends Component
 {
     use WithFileUploads;
