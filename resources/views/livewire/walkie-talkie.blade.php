@@ -114,12 +114,25 @@
             this.music = new Audio('https://lumerel.nyc3.cdn.digitaloceanspaces.com/music/Synth_Wave_Focus.mp3');
             this.music.loop = true;
             this.music.volume = this.musicVol;
-            // browsers block autoplay until a gesture — kick it off on the first one
-            const startMusic = () => {
+            // browsers block autoplay until a gesture. On the first one, start the
+            // music AND "unlock" the RX <audio> element: iOS only allows a later,
+            // poll-driven player.play() if that exact element has already played
+            // inside a user gesture. Without this, incoming messages are silently
+            // blocked on iPhone (send works — it's gesture-driven — but receive dies).
+            const unlockAudio = () => {
                 if (this.musicOn) this.music.play().catch(() => {});
-                window.removeEventListener('pointerdown', startMusic);
+
+                const p = this.$refs.player;
+                if (p) {
+                    p.volume = 0; // silent, but a real (non-muted) gesture-play unlocks it
+                    p.src = '/fx/_RADIO_end.mp3';
+                    const restore = () => { try { p.pause(); p.currentTime = 0; } catch (e) {} p.volume = 1; };
+                    p.play().then(restore).catch(restore);
+                }
+
+                window.removeEventListener('pointerdown', unlockAudio);
             };
-            window.addEventListener('pointerdown', startMusic);
+            window.addEventListener('pointerdown', unlockAudio);
 
             // channel tuned -> morph the organism to the new channel
             this.$wire.on('channel-tuned', () => {
