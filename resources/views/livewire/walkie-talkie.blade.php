@@ -1,6 +1,6 @@
 @php($meta = $channelMeta[$channel] ?? ['name' => '—', 'freq' => '00.0'])
 
-<div wire:poll.2000ms="checkForMessages" class="stage" x-data="talkie()" x-cloak>
+<div wire:poll.2000ms.visible="checkForMessages" class="stage" x-data="talkie()" x-cloak>
 
     {{-- Masthead --}}
     <header class="masthead">
