@@ -99,7 +99,7 @@
         sfx: null,
         music: null,
         arming: false,
-        musicOn: true,
+        musicOn: false,
         musicVol: 0.05,
 
         init() {
